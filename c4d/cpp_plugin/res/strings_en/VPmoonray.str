@@ -1,0 +1,40 @@
+STRINGTABLE VPmoonray
+{
+    VPmoonray                       "MoonRay Renderer";
+
+    MOONRAY_QUALITY_GROUP           "Quality";
+    MOONRAY_SAMPLES_PER_PIXEL       "Pixel Samples";
+    MOONRAY_MAX_DEPTH               "Max Ray Depth";
+    MOONRAY_LIGHT_SAMPLES           "Light Samples";
+    MOONRAY_PIXEL_FILTER            "Pixel Filter";
+    MOONRAY_PIXEL_FILTER_WIDTH      "Filter Width";
+    MOONRAY_ADAPTIVE_SAMPLING       "Adaptive Sampling";
+    MOONRAY_ADAPTIVE_THRESHOLD      "Adaptive Threshold";
+
+    MOONRAY_FILTER_BOX              "Box";
+    MOONRAY_FILTER_GAUSSIAN         "Gaussian";
+    MOONRAY_FILTER_MITCHELL         "Mitchell-Netravali";
+
+    MOONRAY_DENOISE_GROUP           "Denoising";
+    MOONRAY_DENOISE_ENABLED         "Enable Denoiser";
+    MOONRAY_DENOISE_TYPE            "Denoiser";
+    MOONRAY_DENOISE_OIDN            "Intel Open Image Denoise";
+    MOONRAY_DENOISE_OPTIX           "NVIDIA OptiX";
+
+    MOONRAY_EXECUTION_GROUP         "Execution";
+    MOONRAY_EXEC_MODE               "Mode";
+    MOONRAY_EXEC_LOCAL              "Local";
+    MOONRAY_EXEC_ARRAS              "Arras (Distributed)";
+    MOONRAY_EXEC_PATH               "MoonRay Path";
+    MOONRAY_THREADS                 "Threads (0=Auto)";
+    MOONRAY_ARRAS_HOST              "Arras Host";
+    MOONRAY_ARRAS_PORT              "Arras Port";
+    MOONRAY_OUTPUT_FORMAT           "Output Format";
+    MOONRAY_OUTPUT_EXR              "OpenEXR";
+    MOONRAY_OUTPUT_PNG              "PNG";
+
+    MOONRAY_SCENE_GROUP             "Scene";
+    MOONRAY_SCENE_SCALE             "Scene Scale";
+    MOONRAY_MOTION_BLUR             "Motion Blur";
+    MOONRAY_MOTION_STEPS            "Motion Steps";
+}
