@@ -11,6 +11,14 @@ This plugin provides two integration paths:
 | **Python Plugin** (`plugins/moonray_renderer/`) | Python | Full pipeline bridge using USD export and CLI rendering |
 | **C++ Plugin** (`cpp_plugin/`) | C++ | Native VideoPost with direct `scene_rdl2` memory integration |
 
+Both plugins support three execution modes:
+
+| Mode | Description |
+|------|-------------|
+| **Local** | Renders via the MoonRay CLI (`moonray` command) |
+| **Arras** | Distributed rendering through the Arras framework |
+| **Hydra** | In-process rendering through the hdMoonray Hydra render delegate |
+
 ## Architecture
 
 ```
@@ -21,19 +29,25 @@ Cinema 4D Scene
 │  Scene Translator   │  Converts C4D objects → USD geometry, cameras, lights
 └──────────┬──────────┘
            │
-           ▼
+       ┌───┴───┐
+       │       │
+       ▼       ▼
+ ┌──────────┐ ┌──────────────────────┐
+ │  Classic  │ │  Hydra Path          │
+ │  Pipeline │ │  (hdMoonray)         │
+ ├──────────┤ ├──────────────────────┤
+ │ Material │ │ In-memory USD Stage  │
+ │ Mapper   │ │         │            │
+ │    │     │ │         ▼            │
+ │    ▼     │ │ UsdImagingGLEngine   │
+ │ Render   │ │         │            │
+ │ Executor │ │         ▼            │
+ │ (CLI)    │ │ hdMoonray Delegate   │
+ └────┬─────┘ └─────────┬────────────┘
+      │                 │
+      ▼                 ▼
 ┌─────────────────────┐
-│  Material Mapper    │  Maps C4D materials → MoonRay DwaBase/Metal/Glass shaders
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Render Executor    │  Launches moonray CLI or Arras distributed render
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Result Feedback    │  Loads rendered EXR/PNG → C4D Picture Viewer
+│  Result Feedback    │  Loads rendered pixels → C4D Picture Viewer
 └─────────────────────┘
 ```
 
@@ -76,6 +90,7 @@ Cinema 4D Scene
 | Pixel Filter | Box | Reconstruction filter (Box/Gaussian/Mitchell) |
 | Enable Denoiser | On | Intel OIDN or NVIDIA OptiX denoising |
 | Execution Mode | Local | Local CLI or Arras distributed rendering |
+| Hydra Delegate | Off | Use hdMoonray Hydra delegate (requires USD libs) |
 | Adaptive Sampling | Off | Concentrate samples on noisy regions |
 | Motion Blur | Off | Camera and object motion blur |
 
@@ -91,6 +106,7 @@ mkdir build && cd build
 cmake .. \
     -DC4D_SDK_PATH=/path/to/cinema4d_sdk \
     -DMOONRAY_ROOT=/path/to/moonray/install \
+    -DUSD_ROOT=/path/to/usd/install \
     -DC4D_PLUGINS_DIR=/path/to/c4d/plugins
 cmake --build .
 cmake --install .
@@ -100,6 +116,7 @@ cmake --install .
 
 - Cinema 4D C++ SDK (from [developers.maxon.net](https://developers.maxon.net/))
 - MoonRay built from source (provides `scene_rdl2`, rendering libraries)
+- USD built with Imaging support (provides `usdImagingGL`, `hdMoonray`)
 - CMake 3.20+
 - C++17 compiler
 
@@ -128,8 +145,8 @@ cmake --install .
 - [x] Phase 2: Material and shader mapping
 - [x] Phase 3: Render execution and progress feedback
 - [x] Phase 4: C++ VideoPost plugin scaffold
-- [ ] Phase 5: Interactive Preview Rendering (IPR) with live updates
-- [ ] Hydra render delegate integration (pending C4D Hydra support)
+- [x] Phase 5: Hydra render delegate integration (hdMoonray)
+- [ ] Phase 6: Interactive Preview Rendering (IPR) with live updates
 - [ ] AOV/render pass output (beauty, depth, normals, cryptomatte)
 - [ ] Animation/sequence rendering with motion blur
 

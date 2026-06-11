@@ -52,10 +52,17 @@ enum
     // ---- Execution Modes ----
     MOONRAY_EXEC_LOCAL              = 0,
     MOONRAY_EXEC_ARRAS              = 1,
+    MOONRAY_EXEC_HYDRA              = 2,
 
     // ---- Output Formats ----
     MOONRAY_OUTPUT_EXR              = 0,
     MOONRAY_OUTPUT_PNG              = 1,
+
+    // ---- Hydra ----
+    MOONRAY_HYDRA_GROUP             = 10400,
+    MOONRAY_HYDRA_ENABLED           = 10401,
+    MOONRAY_HYDRA_IPR               = 10402,
+    MOONRAY_HYDRA_CONVERGENCE       = 10403,
 };
 
 #endif // VPMOONRAY_H__

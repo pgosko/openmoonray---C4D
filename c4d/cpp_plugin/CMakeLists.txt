@@ -73,12 +73,37 @@ if(MOONRAY_ROOT)
 endif()
 
 # ============================================================
+# USD / Hydra Libraries (for hdMoonray delegate integration)
+# ============================================================
+
+set(USD_ROOT "" CACHE PATH "Path to USD installation (contains lib/ and include/)")
+
+if(USD_ROOT)
+    include_directories("${USD_ROOT}/include")
+    link_directories("${USD_ROOT}/lib")
+
+    set(USD_LIBRARIES
+        usd_usd
+        usd_usdGeom
+        usd_usdLux
+        usd_usdImaging
+        usd_usdImagingGL
+        usd_sdf
+        usd_tf
+        usd_gf
+        usd_vt
+        usd_hd
+    )
+endif()
+
+# ============================================================
 # Plugin Target
 # ============================================================
 
 set(PLUGIN_SOURCES
     source/main.cpp
     source/moonray_videopost.cpp
+    source/hydra_delegate_bridge.cpp
 )
 
 add_library(moonray_c4d SHARED ${PLUGIN_SOURCES})
@@ -91,6 +116,10 @@ target_include_directories(moonray_c4d PRIVATE
 if(MOONRAY_ROOT)
     target_link_libraries(moonray_c4d PRIVATE ${MOONRAY_LIBRARIES})
     target_compile_definitions(moonray_c4d PRIVATE MOONRAY_AVAILABLE=1)
+endif()
+
+if(USD_ROOT)
+    target_link_libraries(moonray_c4d PRIVATE ${USD_LIBRARIES})
 endif()
 
 # Platform-specific settings

@@ -25,6 +25,7 @@ STRINGTABLE VPmoonray
     MOONRAY_EXEC_MODE               "Mode";
     MOONRAY_EXEC_LOCAL              "Local";
     MOONRAY_EXEC_ARRAS              "Arras (Distributed)";
+    MOONRAY_EXEC_HYDRA              "Hydra (hdMoonray)";
     MOONRAY_EXEC_PATH               "MoonRay Path";
     MOONRAY_THREADS                 "Threads (0=Auto)";
     MOONRAY_ARRAS_HOST              "Arras Host";
@@ -37,4 +38,9 @@ STRINGTABLE VPmoonray
     MOONRAY_SCENE_SCALE             "Scene Scale";
     MOONRAY_MOTION_BLUR             "Motion Blur";
     MOONRAY_MOTION_STEPS            "Motion Steps";
+
+    MOONRAY_HYDRA_GROUP             "Hydra Delegate";
+    MOONRAY_HYDRA_ENABLED           "Hydra Available";
+    MOONRAY_HYDRA_IPR               "Interactive Preview (IPR)";
+    MOONRAY_HYDRA_CONVERGENCE       "Convergence";
 }

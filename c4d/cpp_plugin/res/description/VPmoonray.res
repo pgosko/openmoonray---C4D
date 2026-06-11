@@ -75,6 +75,7 @@ CONTAINER VPmoonray
             {
                 MOONRAY_EXEC_LOCAL;
                 MOONRAY_EXEC_ARRAS;
+                MOONRAY_EXEC_HYDRA;
             }
         }
         FILENAME MOONRAY_EXEC_PATH {}
@@ -117,6 +118,21 @@ CONTAINER VPmoonray
             MIN 2;
             MAX 16;
             STEP 1;
+        }
+    }
+
+    GROUP MOONRAY_HYDRA_GROUP
+    {
+        DEFAULT 1;
+
+        BOOL MOONRAY_HYDRA_ENABLED {}
+        BOOL MOONRAY_HYDRA_IPR {}
+        REAL MOONRAY_HYDRA_CONVERGENCE
+        {
+            MIN 0.0;
+            MAX 1.0;
+            STEP 0.01;
+            UNIT PERCENT;
         }
     }
 }

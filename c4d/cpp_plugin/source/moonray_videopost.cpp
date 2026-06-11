@@ -12,6 +12,7 @@
 #include "c4d_videopostdata.h"
 #include "c4d_symbols.h"
 #include "VPmoonray.h"
+#include "hydra_delegate_bridge.h"
 
 // Plugin ID - Register at plugincafe.maxon.net for production
 static const Int32 ID_MOONRAY_VIDEOPOST = 1060450;
@@ -57,8 +58,14 @@ private:
     Bool ReadResult(VPBuffer* buffer);
     void ShutdownMoonRay();
 
+    // Hydra integration
+    Bool ExecuteHydraRender(BaseDocument* doc, BaseVideoPost* node,
+                            Int32 width, Int32 height,
+                            VPBuffer* buffer, BaseThread* thread);
+
     // Internal state
     Bool m_initialized;
+    HydraDelegateBridge m_hydraBridge;
 };
 
 
@@ -91,6 +98,9 @@ Bool MoonRayVideoPost::Init(GeListNode* node, Bool isCloneInit)
     data->SetInt32(MOONRAY_MOTION_STEPS, 2);
     data->SetBool(MOONRAY_ADAPTIVE_SAMPLING, false);
     data->SetFloat(MOONRAY_ADAPTIVE_THRESHOLD, 0.01);
+    data->SetBool(MOONRAY_HYDRA_ENABLED, HydraDelegateBridge::IsAvailable());
+    data->SetBool(MOONRAY_HYDRA_IPR, false);
+    data->SetFloat(MOONRAY_HYDRA_CONVERGENCE, 0.0);
 
     m_initialized = false;
 
@@ -156,6 +166,24 @@ RENDERRESULT MoonRayVideoPost::Execute(
     // Check for user cancellation
     if (vps->thread && vps->thread->TestBreak())
         return RENDERRESULT::USERBREAK;
+
+    // Determine execution mode
+    BaseContainer* data = node->GetDataInstance();
+    Int32 execMode = data ? data->GetInt32(MOONRAY_EXEC_MODE) : MOONRAY_EXEC_LOCAL;
+
+    // ---- Hydra render path ----
+    if (execMode == MOONRAY_EXEC_HYDRA)
+    {
+        VPBuffer* rgba = vps->render->GetBuffer(VPBUF_RGBA, 0);
+        if (!ExecuteHydraRender(doc, node, width, height, rgba, vps->thread))
+        {
+            GePrint("[MoonRay] Hydra render failed"_s);
+            return RENDERRESULT::FAILED;
+        }
+        return RENDERRESULT::OK;
+    }
+
+    // ---- Classic (CLI / Arras) render path ----
 
     // Phase 1: Initialize MoonRay
     if (!InitMoonRay())
@@ -276,6 +304,50 @@ Bool MoonRayVideoPost::TranslateMaterials(BaseDocument* doc)
     // - Map C4D materials to DwaBaseMaterial, DwaMetalMaterial, etc.
     // - Handle texture paths and shader networks
     return true;
+}
+
+
+// ============================================================
+// Hydra Render Path
+// ============================================================
+
+Bool MoonRayVideoPost::ExecuteHydraRender(
+    BaseDocument* doc, BaseVideoPost* node,
+    Int32 width, Int32 height,
+    VPBuffer* buffer, BaseThread* thread)
+{
+    if (!HydraDelegateBridge::IsAvailable())
+    {
+        GePrint("[MoonRay Hydra] Hydra delegate not available"_s);
+        return false;
+    }
+
+    // Build the USD stage from the C4D document
+    if (!m_hydraBridge.BuildStage(doc, node))
+    {
+        GePrint("[MoonRay Hydra] Stage construction failed"_s);
+        return false;
+    }
+
+    if (thread && thread->TestBreak())
+    {
+        m_hydraBridge.Shutdown();
+        return false;
+    }
+
+    // Execute the Hydra render
+    if (!m_hydraBridge.Render(width, height, thread))
+    {
+        GePrint("[MoonRay Hydra] Render execution failed"_s);
+        m_hydraBridge.Shutdown();
+        return false;
+    }
+
+    // Transfer pixels to C4D buffer
+    Bool ok = buffer ? m_hydraBridge.ReadPixels(buffer, width, height) : true;
+
+    m_hydraBridge.Shutdown();
+    return ok;
 }
 
 
