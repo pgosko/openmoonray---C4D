@@ -1,0 +1,163 @@
+name: CI - Windows (CPU)
+
+on:
+  workflow_dispatch:
+    inputs:
+      force-rebuild-deps:
+        description: 'Force rebuild dependencies'
+        default: false
+        required: false
+        type: boolean
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'flowpipeline.yaml'
+      - 'LICENSE'
+      - 'tsc/**'
+      - '.github/workflows/OnMerge.yml'
+      - '.github/workflows/SubmoduleUpdate.yml'
+      - '.github/workflows/harmony_cd.yml'
+      - '.github/workflows/mac_CI_rats.yml'
+
+concurrency:
+  group: windows-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-deps:
+    name: Build dependencies
+    runs-on: windows-latest
+    env:
+      DEPS_ROOT: C:\MoonRay\installs
+      BUILD_DEPS_DIR: C:\MoonRay\build-deps
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+      VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
+
+      - name: Enable GitHub Actions cache for vcpkg
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Cache dependency install tree
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: C:\MoonRay\installs
+          key: moonray-deps-windows-${{ hashFiles('building/windows/CMakeLists.txt') }}
+          restore-keys: |
+            moonray-deps-windows-
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v4
+
+      - name: Install MSVC (Visual Studio Build Tools)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Create directory structure
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path C:\MoonRay\installs\bin
+          New-Item -ItemType Directory -Force -Path C:\MoonRay\installs\lib
+          New-Item -ItemType Directory -Force -Path C:\MoonRay\installs\include
+          New-Item -ItemType Directory -Force -Path $env:BUILD_DEPS_DIR
+
+      - name: Build dependencies from source
+        if: steps.cache-deps.outputs.cache-hit != 'true' || inputs.force-rebuild-deps == 'true'
+        shell: cmd
+        run: |
+          cd /d %BUILD_DEPS_DIR%
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ^
+                -DInstallRoot=%DEPS_ROOT% ^
+                -DNO_CUDA=1 ^
+                -DNO_QT=1 ^
+                %GITHUB_WORKSPACE%\building\windows
+          cmake --build . -- -j %NUMBER_OF_PROCESSORS%
+
+  build-moonray:
+    name: Build MoonRay
+    needs: build-deps
+    runs-on: windows-latest
+    env:
+      DEPS_ROOT: C:\MoonRay\installs
+      BUILD_DIR: C:\MoonRay\build
+      INSTALL_DIR: C:\MoonRay\installs\openmoonray
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
+
+      - name: Restore dependency cache
+        uses: actions/cache@v4
+        with:
+          path: C:\MoonRay\installs
+          key: moonray-deps-windows-${{ hashFiles('building/windows/CMakeLists.txt') }}
+          restore-keys: |
+            moonray-deps-windows-
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v4
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Create build directory
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:BUILD_DIR
+          New-Item -ItemType Directory -Force -Path $env:INSTALL_DIR
+
+      - name: Configure MoonRay (no CUDA, no Qt)
+        shell: cmd
+        env:
+          BUILD_DIR: C:\MoonRay\build
+        run: |
+          cmake --preset windows-release-nocuda ^
+                -DCMAKE_INSTALL_PREFIX=%INSTALL_DIR% ^
+                -DDEPS_ROOT=%DEPS_ROOT%
+
+      - name: Build MoonRay
+        shell: cmd
+        run: |
+          cmake --build --preset windows-release-nocuda -- -j %NUMBER_OF_PROCESSORS%
+
+      - name: Smoke test - moonray --help
+        shell: cmd
+        run: |
+          set PATH=%INSTALL_DIR%\bin;%DEPS_ROOT%\bin;%PATH%
+          moonray --help
+
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonray-windows-release
+          path: C:\MoonRay\installs\openmoonray
+          retention-days: 7
