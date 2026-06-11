@@ -101,7 +101,7 @@ class MoonRayVideoPost(c4d.plugins.VideoPostData):
         data = node.GetDataInstance()
 
         # Build render configuration from settings
-        config = self._build_config(data, renderdata)
+        config = self._build_config(data, renderdata, doc)
 
         # Create the bridge and execute the render
         bridge = MoonRayBridge(config)
@@ -114,7 +114,7 @@ class MoonRayVideoPost(c4d.plugins.VideoPostData):
         else:
             return c4d.RENDERRESULT_FAILED
 
-    def _build_config(self, data, renderdata):
+    def _build_config(self, data, renderdata, doc):
         """Extract render configuration from plugin settings."""
         config = {
             "samples_per_pixel": data.GetInt32(MOONRAY_SAMPLES_PER_PIXEL),
