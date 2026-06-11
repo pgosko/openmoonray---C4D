@@ -45,7 +45,7 @@ static GfMatrix4d C4DMatrixToGf(const Matrix& m)
 }
 
 // Helper: sanitise an object name to a valid USD prim token
-static std::string SanitiseName(const String& name, Int32 idx)
+static std::string SanitizeName(const String& name, Int32 idx)
 {
     Char buf[256];
     name.GetCString(buf, sizeof(buf));
@@ -347,7 +347,7 @@ Bool HydraDelegateBridge::ExportMesh(BaseObject* obj, Int32 index)
     if (!points || !polys)
         return false;
 
-    std::string safeName = SanitiseName(obj->GetName(), index);
+    std::string safeName = SanitizeName(obj->GetName(), index);
     SdfPath meshPath(std::string("/World/Geometry/") + safeName);
 
     UsdGeomMesh mesh = UsdGeomMesh::Define(m_stage, meshPath);

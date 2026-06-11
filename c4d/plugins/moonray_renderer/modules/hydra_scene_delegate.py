@@ -280,7 +280,7 @@ class HydraSceneDelegate:
 
         if name is None:
             name = obj.GetName()
-        safe_name = self._sanitise_name(name, index)
+        safe_name = self._sanitize_name(name, index)
         path = Sdf.Path(f"/World/Geometry/{safe_name}")
 
         mesh = UsdGeom.Mesh.Define(self.stage, path)
@@ -399,7 +399,7 @@ class HydraSceneDelegate:
         return None
 
     @staticmethod
-    def _sanitise_name(name, index):
+    def _sanitize_name(name, index):
         """Create a valid USD prim name from a Cinema 4D object name."""
         safe = "".join(ch if ch.isalnum() or ch == "_" else "_" for ch in name)
         if not safe or safe[0].isdigit():
