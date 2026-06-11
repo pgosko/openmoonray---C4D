@@ -37,10 +37,9 @@ set(PythonRoot  "C:/Python39"         CACHE FILEPATH "Root of Python 3.9 install
 set(PythonVer   "3.9"                 CACHE STRING   "Python version (major.minor), e.g. 3.9")
 
 # Derive the python executable and library paths from PythonRoot
+string(REPLACE "." "" PythonVer_nodot "${PythonVer}")
 set(PYTHON_EXE       "${PythonRoot}/python.exe")
 set(PYTHON_INCLUDE   "${PythonRoot}/include")
-set(PYTHON_LIB       "${PythonRoot}/libs/python${PythonVer_nodot}.lib")
-string(REPLACE "." "" PythonVer_nodot "${PythonVer}")
 set(PYTHON_LIB       "${PythonRoot}/libs/python${PythonVer_nodot}.lib")
 
 # Common CMake args used by most dependencies
