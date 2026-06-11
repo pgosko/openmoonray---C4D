@@ -24,6 +24,11 @@ def get_default_exec_path():
     return DEFAULT_EXEC_PATHS.get(system, "moonray")
 
 
+# Execution mode constants
+EXEC_MODE_LOCAL = 0
+EXEC_MODE_ARRAS = 1
+EXEC_MODE_HYDRA = 2
+
 # Default render settings
 DEFAULT_SETTINGS = {
     "samples_per_pixel": 16,
@@ -45,6 +50,15 @@ DEFAULT_SETTINGS = {
     "motion_blur": False,
     "motion_steps": 2,
 }
+
+
+def is_hydra_available():
+    """Check whether the pxr USD Imaging libraries are importable."""
+    try:
+        from pxr import Usd, UsdImagingGL  # noqa: F401
+        return True
+    except ImportError:
+        return False
 
 # Supported MoonRay shader types
 MOONRAY_SHADERS = [

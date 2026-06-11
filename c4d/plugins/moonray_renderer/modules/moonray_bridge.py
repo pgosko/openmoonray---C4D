@@ -15,6 +15,7 @@ import shutil
 from scene_translator import SceneTranslator
 from material_mapper import MaterialMapper
 from render_executor import RenderExecutor
+from config import EXEC_MODE_HYDRA
 
 
 class MoonRayBridge:
@@ -43,6 +44,50 @@ class MoonRayBridge:
     def render(self, doc, bmp, bt):
         """
         Execute a full render of the given Cinema 4D document.
+
+        Args:
+            doc: c4d.documents.BaseDocument - The scene to render.
+            bmp: c4d.bitmaps.BaseBitmap - The output bitmap to write to.
+            bt: c4d.threading.BaseThread - Thread for cancellation checks.
+
+        Returns:
+            int: RESULT_SUCCESS, RESULT_FAILED, or RESULT_USERBREAK.
+        """
+        exec_mode = self.config.get("exec_mode", 0)
+
+        # Route to Hydra bridge when Hydra execution mode is selected
+        if exec_mode == EXEC_MODE_HYDRA:
+            return self._render_hydra(doc, bmp, bt)
+
+        return self._render_classic(doc, bmp, bt)
+
+    def _render_hydra(self, doc, bmp, bt):
+        """
+        Render through the hdMoonray Hydra render delegate.
+
+        Args:
+            doc: c4d.documents.BaseDocument
+            bmp: c4d.bitmaps.BaseBitmap
+            bt: c4d.threading.BaseThread
+
+        Returns:
+            int: Result code.
+        """
+        try:
+            from hydra_bridge import HydraBridge
+        except ImportError:
+            print(
+                "[MoonRay] Hydra bridge unavailable. "
+                "Ensure pxr USD libraries are installed."
+            )
+            return self.RESULT_FAILED
+
+        bridge = HydraBridge(self.config)
+        return bridge.render(doc, bmp, bt)
+
+    def _render_classic(self, doc, bmp, bt):
+        """
+        Execute a render using the classic USD-export + CLI pipeline.
 
         Args:
             doc: c4d.documents.BaseDocument - The scene to render.

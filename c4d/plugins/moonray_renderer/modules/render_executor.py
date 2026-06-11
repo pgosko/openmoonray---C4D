@@ -21,6 +21,7 @@ class RenderExecutor:
 
     EXEC_MODE_LOCAL = 0
     EXEC_MODE_ARRAS = 1
+    EXEC_MODE_HYDRA = 2
 
     def __init__(self, config, work_dir):
         """
@@ -52,6 +53,13 @@ class RenderExecutor:
             return self._execute_local(scene_path, bt)
         elif exec_mode == self.EXEC_MODE_ARRAS:
             return self._execute_arras(scene_path, bt)
+        elif exec_mode == self.EXEC_MODE_HYDRA:
+            # Hydra execution is handled by HydraBridge, not this class.
+            self.error_message = (
+                "Hydra mode should be invoked via HydraBridge, "
+                "not through RenderExecutor."
+            )
+            return None
         else:
             self.error_message = f"Unknown execution mode: {exec_mode}"
             return None

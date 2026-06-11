@@ -19,11 +19,13 @@ from moonray_bridge import MoonRayBridge
 from scene_translator import SceneTranslator
 from material_mapper import MaterialMapper
 from render_executor import RenderExecutor
+from config import EXEC_MODE_HYDRA, is_hydra_available
 
 # Plugin IDs (register at plugincafe.maxon.net for production use)
 PLUGIN_ID_VIDEOPOST = 1060450
 PLUGIN_ID_COMMAND_RENDER = 1060451
 PLUGIN_ID_COMMAND_IPR = 1060452
+PLUGIN_ID_COMMAND_HYDRA_IPR = 1060453
 
 # ============================================================
 # MoonRay Render Settings (VideoPost)
@@ -48,6 +50,7 @@ MOONRAY_ADAPTIVE_THRESHOLD = 1014
 MOONRAY_SCENE_SCALE = 1015
 MOONRAY_MOTION_BLUR = 1016
 MOONRAY_MOTION_STEPS = 1017
+MOONRAY_HYDRA_ENABLED = 1018
 
 
 class MoonRayVideoPost(c4d.plugins.VideoPostData):
@@ -70,7 +73,7 @@ class MoonRayVideoPost(c4d.plugins.VideoPostData):
         data.SetBool(MOONRAY_DENOISE_ENABLED, True)
         data.SetInt32(MOONRAY_DENOISE_TYPE, 0)  # 0=OIDN, 1=Optix
         data.SetInt32(MOONRAY_THREADS, 0)  # 0 = auto-detect
-        data.SetInt32(MOONRAY_EXEC_MODE, 0)  # 0=Local, 1=Arras
+        data.SetInt32(MOONRAY_EXEC_MODE, 0)  # 0=Local, 1=Arras, 2=Hydra
         data.SetString(MOONRAY_EXEC_PATH, "moonray")
         data.SetString(MOONRAY_ARRAS_HOST, "localhost")
         data.SetInt32(MOONRAY_ARRAS_PORT, 8087)
@@ -80,6 +83,7 @@ class MoonRayVideoPost(c4d.plugins.VideoPostData):
         data.SetFloat(MOONRAY_SCENE_SCALE, 1.0)
         data.SetBool(MOONRAY_MOTION_BLUR, False)
         data.SetInt32(MOONRAY_MOTION_STEPS, 2)
+        data.SetBool(MOONRAY_HYDRA_ENABLED, is_hydra_available())
         return True
 
     def Execute(self, node, doc, bt, priority, flags):
@@ -166,6 +170,32 @@ class MoonRayRenderCommand(c4d.plugins.CommandData):
         return c4d.CMD_ENABLED
 
 
+class MoonRayHydraIPRCommand(c4d.plugins.CommandData):
+    """
+    Menu command to start an interactive preview render (IPR) using
+    the MoonRay Hydra delegate.
+    """
+
+    def Execute(self, doc):
+        """Start the Hydra IPR session."""
+        if not is_hydra_available():
+            print(
+                "[MoonRay] Hydra IPR requires pxr USD Imaging libraries. "
+                "Please install USD with imaging support."
+            )
+            return False
+
+        # Trigger a render using the Hydra path
+        c4d.CallCommand(12099)  # Render to Picture Viewer
+        return True
+
+    def GetState(self, doc):
+        """Enabled only when Hydra libraries are available."""
+        if is_hydra_available():
+            return c4d.CMD_ENABLED
+        return 0
+
+
 # ============================================================
 # Plugin Registration
 # ============================================================
@@ -202,7 +232,18 @@ def main():
         dat=MoonRayRenderCommand(),
     )
 
-    print("[MoonRay] Plugin registered successfully (v0.1.0)")
+    # Register the Hydra IPR command
+    c4d.plugins.RegisterCommandPlugin(
+        id=PLUGIN_ID_COMMAND_HYDRA_IPR,
+        str="MoonRay Hydra IPR",
+        info=0,
+        icon=None,
+        help="Start interactive preview rendering via the MoonRay Hydra delegate",
+        dat=MoonRayHydraIPRCommand(),
+    )
+
+    hydra_status = "available" if is_hydra_available() else "not available"
+    print(f"[MoonRay] Plugin registered successfully (v0.1.0, Hydra: {hydra_status})")
 
 
 if __name__ == "__main__":
